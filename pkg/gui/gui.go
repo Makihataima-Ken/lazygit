@@ -493,7 +493,7 @@ func (gui *Gui) onUserConfigLoaded() error {
 		gui.previousLanguageConfig = userConfig.Gui.Language
 	}
 
-	gui.setColorScheme()
+	gui.applyThemeConfig()
 	gui.configureViewProperties()
 
 	gui.g.SearchEscapeKeys = config.GetValidatedKeyBindingKeys(userConfig.Keybinding.Universal.Return)
@@ -516,20 +516,12 @@ func (gui *Gui) onUserConfigLoaded() error {
 	// sake of backwards compatibility. We're making use of short circuiting here
 	gui.ShowExtrasWindow = userConfig.Gui.ShowCommandLog && !gui.c.GetAppState().HideCommandLog
 
-	presentation.SetCustomAuthors(userConfig.Gui.AuthorColors)
 	if userConfig.Gui.NerdFontsVersion != "" {
 		icons.SetNerdFontsVersion(userConfig.Gui.NerdFontsVersion)
 	} else if userConfig.Gui.ShowIcons {
 		icons.SetNerdFontsVersion("2")
 	} else {
 		icons.SetNerdFontsVersion("")
-	}
-
-	if len(userConfig.Gui.BranchColorPatterns) > 0 {
-		presentation.SetCustomBranches(userConfig.Gui.BranchColorPatterns, true)
-	} else {
-		// Fall back to the deprecated branchColors config
-		presentation.SetCustomBranches(userConfig.Gui.BranchColors, false)
 	}
 
 	return nil
@@ -1240,6 +1232,25 @@ func (gui *Gui) showBreakingChangesMessage() {
 			})
 			return nil
 		})
+	}
+}
+
+// applyThemeConfig applies the theme-related parts of the user config that was
+// last stored with SetUserConfig. Colors that are baked into a view's content
+// when it is rendered, like author and branch colors, only change once that
+// content is rendered again.
+func (gui *Gui) applyThemeConfig() {
+	userConfig := gui.UserConfig()
+
+	gui.setColorScheme()
+	gui.applyViewColors()
+
+	presentation.SetCustomAuthors(userConfig.Gui.AuthorColors)
+	if len(userConfig.Gui.BranchColorPatterns) > 0 {
+		presentation.SetCustomBranches(userConfig.Gui.BranchColorPatterns, true)
+	} else {
+		// Fall back to the deprecated branchColors config
+		presentation.SetCustomBranches(userConfig.Gui.BranchColors, false)
 	}
 }
 
