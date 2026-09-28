@@ -29,6 +29,7 @@ import (
 	"github.com/jesseduffield/lazygit/pkg/integration/tests/submodule"
 	"github.com/jesseduffield/lazygit/pkg/integration/tests/sync"
 	"github.com/jesseduffield/lazygit/pkg/integration/tests/tag"
+	"github.com/jesseduffield/lazygit/pkg/integration/tests/theme"
 	"github.com/jesseduffield/lazygit/pkg/integration/tests/ui"
 	"github.com/jesseduffield/lazygit/pkg/integration/tests/undo"
 	"github.com/jesseduffield/lazygit/pkg/integration/tests/worktree"
@@ -515,6 +516,7 @@ var tests = []*components.IntegrationTest{
 	tag.ForceTagLightweight,
 	tag.Reset,
 	tag.ResetToDuplicateNamedBranch,
+	theme.SelectedThemeAppliedAtStartup,
 	ui.Accordion,
 	ui.BackgroundRefreshKeepsScrollPosition,
 	ui.BranchesNotFirstTab,
