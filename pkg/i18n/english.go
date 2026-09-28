@@ -258,6 +258,8 @@ type TranslationSet struct {
 	IntroPopupMessage                     string
 	NonReloadableConfigWarningTitle       string
 	NonReloadableConfigWarning            string
+	ThemeNotLoaded                        string
+	SelectedThemeNotLoaded                string
 	GitconfigParseErr                     string
 	EditFile                              string
 	EditFileTooltip                       string
@@ -1419,6 +1421,8 @@ func EnglishTranslationSet() *TranslationSet {
 		IntroPopupMessage:                    englishIntroPopupMessage,
 		NonReloadableConfigWarningTitle:      "Config changed",
 		NonReloadableConfigWarning:           englishNonReloadableConfigWarning,
+		ThemeNotLoaded:                       "Couldn't load theme '{{.name}}'",
+		SelectedThemeNotLoaded:               "Couldn't load the selected theme",
 		GitconfigParseErr:                    `Gogit failed to parse your gitconfig file due to the presence of unquoted '\' characters. Removing these should fix the issue.`,
 		EditFile:                             `Edit file`,
 		EditFileTooltip:                      "Open file in external editor.",
