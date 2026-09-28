@@ -732,6 +732,7 @@ keybinding:
     decreaseRenameSimilarityThreshold: (
     openDiffTool: <ctrl+t>
     editConfig: <alt+shift+c>
+    selectTheme: '#'
   status:
     checkForUpdate: u
     recentRepos: <enter>
