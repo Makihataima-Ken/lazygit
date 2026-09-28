@@ -523,3 +523,57 @@ func TestGetBranchTextStyle(t *testing.T) {
 		})
 	}
 }
+
+func TestGetBranchTextStyleWithOverlappingPatterns(t *testing.T) {
+	scenarios := []struct {
+		name          string
+		patterns      map[string]string
+		branchName    string
+		expectedStyle style.TextStyle
+	}{
+		{
+			name: "longest pattern wins",
+			patterns: map[string]string{
+				"feature/.*":    "red",
+				"feature/foo.*": "green",
+			},
+			branchName:    "feature/foo-bar",
+			expectedStyle: style.FgGreen,
+		},
+		{
+			name: "patterns of the same length are tried in byte order",
+			patterns: map[string]string{
+				"feature/a.*": "red",
+				"feature/.*b": "green",
+			},
+			branchName:    "feature/ab",
+			expectedStyle: style.FgGreen,
+		},
+	}
+
+	for _, s := range scenarios {
+		t.Run(s.name, func(t *testing.T) {
+			setCustomBranchesForTest(t, s.patterns, true)
+
+			/* EXPECTED:
+			assert.Equal(t, []style.TextStyle{s.expectedStyle}, distinctBranchTextStyles(s.branchName))
+			ACTUAL: */
+			assert.Len(t, distinctBranchTextStyles(s.branchName), 2)
+		})
+	}
+}
+
+// distinctBranchTextStyles returns each different style that GetBranchTextStyle
+// returns for the branch name over many calls. The configured patterns come
+// from a map, and Go randomizes the iteration order of maps, so a single call
+// could hide a result that depends on that order.
+func distinctBranchTextStyles(branchName string) []style.TextStyle {
+	var result []style.TextStyle
+	for range 1000 {
+		textStyle := GetBranchTextStyle(branchName)
+		if !lo.ContainsBy(result, func(s style.TextStyle) bool { return assert.ObjectsAreEqual(s, textStyle) }) {
+			result = append(result, textStyle)
+		}
+	}
+	return result
+}
