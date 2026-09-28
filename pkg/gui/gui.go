@@ -33,7 +33,6 @@ import (
 	"github.com/jesseduffield/lazygit/pkg/gui/modes/marked_base_commit"
 	"github.com/jesseduffield/lazygit/pkg/gui/popup"
 	"github.com/jesseduffield/lazygit/pkg/gui/presentation"
-	"github.com/jesseduffield/lazygit/pkg/gui/presentation/authors"
 	"github.com/jesseduffield/lazygit/pkg/gui/presentation/graph"
 	"github.com/jesseduffield/lazygit/pkg/gui/presentation/icons"
 	"github.com/jesseduffield/lazygit/pkg/gui/services/custom_commands"
@@ -517,7 +516,7 @@ func (gui *Gui) onUserConfigLoaded() error {
 	// sake of backwards compatibility. We're making use of short circuiting here
 	gui.ShowExtrasWindow = userConfig.Gui.ShowCommandLog && !gui.c.GetAppState().HideCommandLog
 
-	authors.SetCustomAuthors(userConfig.Gui.AuthorColors)
+	presentation.SetCustomAuthors(userConfig.Gui.AuthorColors)
 	if userConfig.Gui.NerdFontsVersion != "" {
 		icons.SetNerdFontsVersion(userConfig.Gui.NerdFontsVersion)
 	} else if userConfig.Gui.ShowIcons {

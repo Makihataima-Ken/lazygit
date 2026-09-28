@@ -324,6 +324,21 @@ func loadPipesets(commits []*models.Commit) [][]graph.Pipe {
 	return pipeSets
 }
 
+// SetCustomAuthors sets the colors of the authors in commit lists (see
+// authors.SetCustomAuthors). This gives every author a new style, so the caches
+// of the commit graph that hold the old styles are emptied as well: its pipe
+// sets would keep drawing in the old colors, and its cache of rendered strings
+// would keep the old styles in memory forever. Rendering a commit list uses
+// these caches while holding mutex, so they are replaced under it.
+func SetCustomAuthors(customAuthorColors map[string]string) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	authors.SetCustomAuthors(customAuthorColors)
+	pipeSetCache = make(map[pipeSetCacheKey][][]graph.Pipe)
+	graph.ResetRGBCache()
+}
+
 // similar to the git_commands.BisectStatus but more gui-focused
 type BisectStatus int
 

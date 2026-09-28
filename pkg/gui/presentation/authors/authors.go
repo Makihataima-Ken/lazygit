@@ -127,6 +127,12 @@ func getInitials(authorName string) string {
 	return utils.LimitStr(split[0], 1) + utils.LimitStr(split[1], 1)
 }
 
+// SetCustomAuthors sets the colors of the authors named in customAuthorColors,
+// where "*" stands for all other authors. The initials and names rendered so
+// far have their colors baked in, so they are dropped and get rendered again
+// with the new colors.
 func SetCustomAuthors(customAuthorColors map[string]string) {
 	authorStyleCache = utils.SetCustomColors(customAuthorColors)
+	authorInitialCache = make(map[string]string)
+	authorNameCache = make(map[authorNameCacheKey]string)
 }

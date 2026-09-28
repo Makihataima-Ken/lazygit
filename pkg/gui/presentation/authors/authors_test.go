@@ -54,10 +54,6 @@ func TestSetCustomAuthorsRecolorsRenderedAuthors(t *testing.T) {
 	assert.Equal(t, "\x1b[38;2;0;255;0mJane Smith\x1b[0m", LongAuthor("Jane Smith", 10))
 
 	SetCustomAuthors(map[string]string{"*": "#ff0000"})
-	/* EXPECTED:
 	assert.Equal(t, "\x1b[38;2;255;0;0mJS\x1b[0m", ShortAuthor("Jane Smith"))
 	assert.Equal(t, "\x1b[38;2;255;0;0mJane Smith\x1b[0m", LongAuthor("Jane Smith", 10))
-	ACTUAL: */
-	assert.Equal(t, "\x1b[38;2;0;255;0mJS\x1b[0m", ShortAuthor("Jane Smith"))
-	assert.Equal(t, "\x1b[38;2;0;255;0mJane Smith\x1b[0m", LongAuthor("Jane Smith", 10))
 }

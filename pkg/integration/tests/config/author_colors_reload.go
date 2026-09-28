@@ -32,11 +32,7 @@ gui:
 		t.FocusIn()
 
 		t.Views().Commits().
-			/* EXPECTED:
 			ContainsColoredText("#ff0000", "CI").
 			ContainsColoredText("#ff0000", "○")
-			ACTUAL: */
-			ContainsColoredText("#00ff00", "CI").
-			ContainsColoredText("#00ff00", "○")
 	},
 })
