@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"syscall"
 	"testing"
 	"time"
 
@@ -749,27 +750,24 @@ func TestSelectThemeFailsWhenTheChoiceCantBeSaved(t *testing.T) {
 		"gui:\n  branchColorPatterns:\n    master: '#0000ff'\n")
 	assert.NoError(t, appConfig.ReloadUserConfigForRepo(nil))
 	assert.NoError(t, appConfig.SelectTheme("pink"))
+	// Nobody can write to a directory, not even root, so one in place of the
+	// file makes saving fail whoever runs the test
 	selectionPath := filepath.Join(configDir, selectedThemeFileName)
-	assert.NoError(t, os.Chmod(selectionPath, 0o444))
-	if file, err := os.OpenFile(selectionPath, os.O_WRONLY, 0); err == nil {
-		file.Close()
-		t.Skip("a read-only file can still be written here, e.g. when running as root")
-	}
+	assert.NoError(t, os.Remove(selectionPath))
+	assert.NoError(t, os.Mkdir(selectionPath, 0o755))
 	userConfig := appConfig.GetUserConfig()
 
 	err := appConfig.SelectTheme("blue")
 
-	assert.ErrorIs(t, err, os.ErrPermission)
+	assert.ErrorIs(t, err, syscall.EISDIR)
 	assert.Same(t, userConfig, appConfig.GetUserConfig())
 	assert.Equal(t, "pink", appConfig.GetSelectedTheme())
 	assert.Equal(t, "pink", appConfig.GetAppliedTheme())
 	assert.NoError(t, appConfig.GetThemeLoadError())
-	savedName, err := loadSelectedThemeName()
-	assert.NoError(t, err)
-	assert.Equal(t, "pink", savedName)
 
 	// Once the file can be written again, so can the choice
-	assert.NoError(t, os.Chmod(selectionPath, 0o644))
+	assert.NoError(t, os.Remove(selectionPath))
+	selectThemeForTest(t, configDir, "pink")
 	assert.NoError(t, appConfig.SelectTheme("blue"))
 	assert.Equal(t, "blue", appConfig.GetAppliedTheme())
 	assert.Equal(t, map[string]string{"master": "#0000ff"}, appConfig.GetUserConfig().Gui.BranchColorPatterns)
