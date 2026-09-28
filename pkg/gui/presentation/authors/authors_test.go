@@ -3,8 +3,10 @@ package authors
 import (
 	"testing"
 
+	"github.com/gookit/color"
 	"github.com/jesseduffield/lazygit/pkg/utils"
 	"github.com/stretchr/testify/assert"
+	"github.com/xo/terminfo"
 )
 
 func TestGetInitials(t *testing.T) {
@@ -40,4 +42,22 @@ func TestAuthorWithLength(t *testing.T) {
 	for _, s := range scenarios {
 		assert.Equal(t, s.expectedOutput, utils.Decolorise(AuthorWithLength(s.authorName, s.length)))
 	}
+}
+
+func TestSetCustomAuthorsRecolorsRenderedAuthors(t *testing.T) {
+	oldColorLevel := color.ForceSetColorLevel(terminfo.ColorLevelMillions)
+	defer color.ForceSetColorLevel(oldColorLevel)
+	defer SetCustomAuthors(nil)
+
+	SetCustomAuthors(map[string]string{"*": "#00ff00"})
+	assert.Equal(t, "\x1b[38;2;0;255;0mJS\x1b[0m", ShortAuthor("Jane Smith"))
+	assert.Equal(t, "\x1b[38;2;0;255;0mJane Smith\x1b[0m", LongAuthor("Jane Smith", 10))
+
+	SetCustomAuthors(map[string]string{"*": "#ff0000"})
+	/* EXPECTED:
+	assert.Equal(t, "\x1b[38;2;255;0;0mJS\x1b[0m", ShortAuthor("Jane Smith"))
+	assert.Equal(t, "\x1b[38;2;255;0;0mJane Smith\x1b[0m", LongAuthor("Jane Smith", 10))
+	ACTUAL: */
+	assert.Equal(t, "\x1b[38;2;0;255;0mJS\x1b[0m", ShortAuthor("Jane Smith"))
+	assert.Equal(t, "\x1b[38;2;0;255;0mJane Smith\x1b[0m", LongAuthor("Jane Smith", 10))
 }

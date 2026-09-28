@@ -164,6 +164,7 @@ var tests = []*components.IntegrationTest{
 	commit.Staged,
 	commit.StagedWithoutHooks,
 	commit.Unstaged,
+	config.AuthorColorsReload,
 	config.CustomCommandsInPerRepoConfig,
 	config.NegativeRefspec,
 	config.RemoteNamedStar,
