@@ -195,6 +195,60 @@ func TestGetThemesDir(t *testing.T) {
 	assert.Equal(t, filepath.Join(configDir, "themes"), appConfig.GetThemesDir())
 }
 
+// Config files passed in LG_CONFIG_FILE replace config.yml, but not the config
+// dir, so the themes are still found in it. A theme overrides all of those
+// files, and the repo config still overrides the theme.
+func TestThemesWithConfigFilesFromEnvironment(t *testing.T) {
+	configDir := t.TempDir()
+	t.Setenv("CONFIG_DIR", configDir)
+	customConfigDir := t.TempDir()
+	firstConfigPath := filepath.Join(customConfigDir, "first.yml")
+	writeThemeTestFile(t, firstConfigPath, `gui:
+  theme:
+    inactiveBorderColor:
+      - blue
+`)
+	secondConfigPath := filepath.Join(customConfigDir, "second.yml")
+	writeThemeTestFile(t, secondConfigPath, `gui:
+  theme:
+    activeBorderColor:
+      - red
+`)
+	t.Setenv("LG_CONFIG_FILE", firstConfigPath+","+secondConfigPath)
+	writeThemeTestFile(t, filepath.Join(configDir, "themes", "pink.yml"), `gui:
+  theme:
+    activeBorderColor:
+      - '#ff00ff'
+    optionsTextColor:
+      - '#00ff00'
+`)
+	selectThemeForTest(t, configDir, "pink")
+	repoConfigPath := filepath.Join(t.TempDir(), "lazygit.yml")
+	writeThemeTestFile(t, repoConfigPath, `gui:
+  theme:
+    optionsTextColor:
+      - yellow
+`)
+	repoConfigFiles := []*ConfigFile{{Path: repoConfigPath, Policy: ConfigFilePolicySkipIfMissing}}
+	appConfig, err := NewAppConfig("lazygit", "unversioned", "", "", "", false, t.TempDir())
+	assert.NoError(t, err)
+
+	assert.Equal(t, filepath.Join(configDir, "themes"), appConfig.GetThemesDir())
+	themes, err := appConfig.ListThemes()
+	assert.NoError(t, err)
+	assert.Equal(t, []string{"pink"}, themes)
+
+	err = appConfig.ReloadUserConfigForRepo(repoConfigFiles)
+
+	assert.NoError(t, err)
+	assert.NoError(t, appConfig.GetThemeLoadError())
+	assert.Equal(t, "pink", appConfig.GetAppliedTheme())
+	themeConfig := appConfig.GetUserConfig().Gui.Theme
+	assert.Equal(t, []string{"blue"}, themeConfig.InactiveBorderColor, "the first file still applies where the theme is silent")
+	assert.Equal(t, []string{"#ff00ff"}, themeConfig.ActiveBorderColor, "the theme overrides the last file")
+	assert.Equal(t, []string{"yellow"}, themeConfig.OptionsTextColor, "the repo config overrides the theme")
+}
+
 func TestListThemes(t *testing.T) {
 	themes, err := NewDummyAppConfig().ListThemes()
 	assert.NoError(t, err)
