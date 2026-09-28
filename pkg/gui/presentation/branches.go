@@ -1,8 +1,10 @@
 package presentation
 
 import (
+	"cmp"
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -22,6 +24,9 @@ import (
 type colorMatcher struct {
 	patterns map[string]*style.TextStyle
 	isRegex  bool // NOTE: this value is needed only until the deprecated branchColors config is removed and only regex color patterns are used
+	// regexOrder lists the keys of patterns in the order in which match tries
+	// them when isRegex is true
+	regexOrder []string
 }
 
 var colorPatterns *colorMatcher
@@ -202,9 +207,9 @@ func GetBranchTextStyle(name string) style.TextStyle {
 
 func (m *colorMatcher) match(name string) (*style.TextStyle, bool) {
 	if m.isRegex {
-		for pattern, style := range m.patterns {
+		for _, pattern := range m.regexOrder {
 			if matched, _ := regexp.MatchString(pattern, name); matched {
-				return style, true
+				return m.patterns[pattern], true
 			}
 		}
 	} else {
@@ -272,10 +277,30 @@ func divergenceStr(
 }
 
 func SetCustomBranches(customBranchColors map[string]string, isRegex bool) {
-	colorPatterns = &colorMatcher{
+	matcher := &colorMatcher{
 		patterns: utils.SetCustomColors(customBranchColors),
 		isRegex:  isRegex,
 	}
+	if isRegex {
+		matcher.regexOrder = branchColorPatternsInMatchOrder(customBranchColors)
+	}
+	colorPatterns = matcher
+}
+
+// branchColorPatternsInMatchOrder returns the patterns longest first, and
+// patterns of the same length in byte order. A longer pattern is usually the
+// more specific one, so a branch name that matches several patterns gets the
+// color of the most specific of them. Breaking ties by byte order makes the
+// choice independent of the config map's random iteration order.
+func branchColorPatternsInMatchOrder(customBranchColors map[string]string) []string {
+	patterns := lo.Keys(customBranchColors)
+	slices.SortFunc(patterns, func(a, b string) int {
+		if len(a) != len(b) {
+			return cmp.Compare(len(b), len(a))
+		}
+		return strings.Compare(a, b)
+	})
+	return patterns
 }
 
 func WithPrColor(state string, text string, isBg bool) string {

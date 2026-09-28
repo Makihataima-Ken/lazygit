@@ -555,10 +555,7 @@ func TestGetBranchTextStyleWithOverlappingPatterns(t *testing.T) {
 		t.Run(s.name, func(t *testing.T) {
 			setCustomBranchesForTest(t, s.patterns, true)
 
-			/* EXPECTED:
 			assert.Equal(t, []style.TextStyle{s.expectedStyle}, distinctBranchTextStyles(s.branchName))
-			ACTUAL: */
-			assert.Len(t, distinctBranchTextStyles(s.branchName), 2)
 		})
 	}
 }

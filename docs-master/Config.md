@@ -1060,6 +1060,8 @@ gui:
 
 Note that the regular expressions are not implicitly anchored to the beginning/end of the branch name. If you want to do that, add leading `^` and/or trailing `$` as needed.
 
+If a branch name matches more than one pattern, the longest of those patterns decides its color. If several of them are equally long, the one that sorts first by character code wins. For example, with the patterns above, a branch named `docs/ISSUE-123` gets the color of `ISSUE-\d+`.
+
 ## Custom Files Icon & Color
 
 You can customize the icon and color of files based on filenames or extensions:
