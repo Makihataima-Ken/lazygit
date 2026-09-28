@@ -13,6 +13,7 @@ import (
 	"github.com/jesseduffield/lazygit/pkg/gui/style"
 	"github.com/jesseduffield/lazygit/pkg/gui/types"
 	"github.com/jesseduffield/lazygit/pkg/i18n"
+	"github.com/jesseduffield/lazygit/pkg/theme"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/xo/terminfo"
@@ -433,6 +434,92 @@ func Test_getBranchDisplayStrings(t *testing.T) {
 		t.Run(fmt.Sprintf("getBranchDisplayStrings_%d", i), func(t *testing.T) {
 			strings := getBranchDisplayStrings(s.branch, s.itemOperation, s.fullDescription, false, s.viewWidth, c.Tr, c.UserConfig(), worktrees, time.Time{}, map[string]*models.GithubPullRequest{})
 			assert.Equal(t, s.expected, strings)
+		})
+	}
+}
+
+// setCustomBranchesForTest configures the branch colors for one test. They are
+// package state, so the previous configuration is restored when the test ends.
+func setCustomBranchesForTest(t *testing.T, branchColors map[string]string, isRegex bool) {
+	t.Helper()
+
+	previousColorPatterns := colorPatterns
+	t.Cleanup(func() { colorPatterns = previousColorPatterns })
+
+	SetCustomBranches(branchColors, isRegex)
+}
+
+func TestGetBranchTextStyle(t *testing.T) {
+	scenarios := []struct {
+		name          string
+		branchColors  map[string]string
+		isRegex       bool
+		branchName    string
+		expectedStyle style.TextStyle
+	}{
+		{
+			name:          "matching regex",
+			branchColors:  map[string]string{"^feature/": "green"},
+			isRegex:       true,
+			branchName:    "feature/foo",
+			expectedStyle: style.FgGreen,
+		},
+		{
+			name:          "regex is not anchored",
+			branchColors:  map[string]string{`ISSUE-\d+`: "green"},
+			isRegex:       true,
+			branchName:    "fix/ISSUE-123-crash",
+			expectedStyle: style.FgGreen,
+		},
+		{
+			name:          "no matching regex",
+			branchColors:  map[string]string{"^feature/": "green"},
+			isRegex:       true,
+			branchName:    "bugfix/feature/foo",
+			expectedStyle: theme.DefaultTextColor,
+		},
+		{
+			name:          "invalid regex matches nothing",
+			branchColors:  map[string]string{"feature/[": "green"},
+			isRegex:       true,
+			branchName:    "feature/[",
+			expectedStyle: theme.DefaultTextColor,
+		},
+		{
+			name:          "deprecated branch type matches the part before the first slash",
+			branchColors:  map[string]string{"feature": "green"},
+			isRegex:       false,
+			branchName:    "feature/foo/bar",
+			expectedStyle: style.FgGreen,
+		},
+		{
+			name:          "deprecated branch type matches a name without a slash",
+			branchColors:  map[string]string{"feature": "green"},
+			isRegex:       false,
+			branchName:    "feature",
+			expectedStyle: style.FgGreen,
+		},
+		{
+			name:          "deprecated branch type must match exactly",
+			branchColors:  map[string]string{"feat": "green"},
+			isRegex:       false,
+			branchName:    "feature/foo",
+			expectedStyle: theme.DefaultTextColor,
+		},
+		{
+			name:          "deprecated branch type is not a regex",
+			branchColors:  map[string]string{"feat.*": "green"},
+			isRegex:       false,
+			branchName:    "feature/foo",
+			expectedStyle: theme.DefaultTextColor,
+		},
+	}
+
+	for _, s := range scenarios {
+		t.Run(s.name, func(t *testing.T) {
+			setCustomBranchesForTest(t, s.branchColors, s.isRegex)
+
+			assert.Equal(t, s.expectedStyle, GetBranchTextStyle(s.branchName))
 		})
 	}
 }
