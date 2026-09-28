@@ -750,8 +750,8 @@ func TestSelectThemeFailsWhenTheChoiceCantBeSaved(t *testing.T) {
 		"gui:\n  branchColorPatterns:\n    master: '#0000ff'\n")
 	assert.NoError(t, appConfig.ReloadUserConfigForRepo(nil))
 	assert.NoError(t, appConfig.SelectTheme("pink"))
-	// Nobody can write to a directory, not even root, so one in place of the
-	// file makes saving fail whoever runs the test
+	// Nobody can open a directory for writing, not even root, so one in place
+	// of the file makes saving fail whoever runs the test
 	selectionPath := filepath.Join(configDir, selectedThemeFileName)
 	assert.NoError(t, os.Remove(selectionPath))
 	assert.NoError(t, os.Mkdir(selectionPath, 0o755))
