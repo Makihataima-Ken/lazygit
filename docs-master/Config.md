@@ -965,6 +965,8 @@ or
 LG_CONFIG_FILE="$HOME/.base_lg_conf,$HOME/.light_theme_lg_conf" lazygit
 ```
 
+If all you want is to switch between color themes, [theme files](#themes) let you do that from within lazygit, without restarting it.
+
 ## Scroll-off Margin
 
 When the selected line gets close to the bottom of the window and you hit down-arrow, there's a feature called "scroll-off margin" that lets the view scroll a little earlier so that you can see a bit of what's coming in the direction that you are moving. This is controlled by the `gui.scrollOffMargin` setting (default: 2), so it keeps 2 lines below the selection visible as you scroll down. It can be set to 0 to scroll only when the selection reaches the bottom of the window.
@@ -1087,6 +1089,123 @@ Note that there is no support for regular expressions.
 ## Example Coloring
 
 ![border example](../../assets/colored-border-example.png)
+
+## Themes
+
+A theme is a file with color settings that lazygit applies on top of your `config.yml`. You can keep several themes and switch between them while lazygit is running, without editing your config file or restarting.
+
+### Theme files
+
+Put each theme in its own file in a folder called `themes` inside lazygit's config directory, e.g. `~/.config/lazygit/themes/light.yml` on Linux. Run `lazygit --print-config-dir` to find out where the config directory is on your machine. The `themes` folder stays there when you use `--use-config-file` or `LG_CONFIG_FILE`; it only moves if you change the config directory itself with `CONFIG_DIR` or `--use-config-dir`.
+
+The name of a theme is its file name without the extension, so `light.yml` shows up as `light`. Lazygit only looks at files directly inside the `themes` folder whose names end in `.yml` (in lower case). It ignores subfolders, `.yaml` files, and files whose names start with a dot. Symlinks are followed, so the files can live elsewhere, e.g. in your dotfiles repo.
+
+A theme file looks like a small config file, with everything under `gui:`. For example, `light.yml` could look like this:
+
+```yaml
+gui:
+  theme:
+    activeBorderColor:
+      - '#1e66f5'
+      - bold
+    inactiveBorderColor:
+      - '#8c8fa1'
+    selectedLineBgColor:
+      - '#ccd0da'
+    defaultFgColor:
+      - '#4c4f69'
+  authorColors:
+    '*': '#7287fd'
+```
+
+A theme file can only contain these keys:
+
+- `gui.theme`, with any of the keys shown under `theme` in the [default config](#default) (see [Color Attributes](#color-attributes) and [Highlighting the selected line](#highlighting-the-selected-line) for their values)
+- `gui.authorColors` (see [Custom Author Color](#custom-author-color))
+- `gui.branchColorPatterns` (see [Custom Branch Color](#custom-branch-color))
+
+Any other key is an error. That includes keys under `gui.theme` that lazygit doesn't know (a typo, or `selectedRangeBgColor`, which lazygit no longer supports), the deprecated `gui.branchColors`, settings that aren't colors such as `gui.nerdFontsVersion`, and color keys that aren't nested under `gui:`.
+
+A theme can only set colors, not remove them, so none of its values may be empty: a key without a value (e.g. `authorColors:` on a line of its own), an empty list or map (`[]` or `{}`), and a list item or map entry without a value are errors as well. Only `gui:` and the `theme:` under it may be left with nothing below them, e.g. while all the keys below them are commented out. Lazygit doesn't apply a theme that has an error (see [When a theme can't be loaded](#when-a-theme-cant-be-loaded)).
+
+An empty theme file is fine; it just doesn't change anything. Unlike your config files, which lazygit rewrites when it migrates outdated settings, theme files are never migrated or rewritten, so they can be read-only.
+
+### Selecting a theme
+
+Press `#` to open the theme menu; it's also in the Global section of the keybindings menu (`?`), as `Select theme...`. The menu lists `(none)` and all your themes in alphabetical order, with a mark on the current choice, and you can type to filter it. The theme you select is applied right away, and lazygit starts with it next time too. Only the colors change: all other settings stay as they are, including the ones you've changed while lazygit is running, such as the sort order of the branches. If there are no theme files yet, the menu tells you which folder to put them in.
+
+`(none)` turns the theme off, leaving you with the colors from your config files. That's not necessarily lazygit's default look: if your `config.yml` sets `gui.theme` keys, you get those. To be able to switch back to the default look, keep colors out of your `config.yml` and put them into theme files instead.
+
+To use a different key, set `keybinding.universal.selectTheme`. If you write `#` in your config file, quote it: unquoted, `#` starts a YAML comment, which leaves the setting empty, so lazygit disables the key and writes `<disabled>` into your config file.
+
+```yaml
+keybinding:
+  universal:
+    selectTheme: '#'
+```
+
+On some keyboard layouts, e.g. British on macOS, `#` is typed with the Option key. If your terminal is set to use Option as Meta, lazygit receives alt+3 instead, and `#` does nothing. Use the `?` menu in that case, or bind the theme menu to another key, e.g. `selectTheme: <alt+t>`.
+
+### How a theme combines with your config
+
+Lazygit builds its config from these layers, each one overriding the ones before it:
+
+1. Lazygit's defaults
+2. Your global config file (`config.yml`, or the files given with `--use-config-file` or `LG_CONFIG_FILE`)
+3. The selected theme
+4. The repo's config files (`.lazygit.yml` in the repo's parent directories, then `<repo>/.git/lazygit.yml`)
+
+So the theme overrides the colors in your `config.yml`, and a repo's own config file overrides the theme. This way you can give a particular repo its own colors, e.g. a red border for a production repo, whichever theme is selected.
+
+The layers are merged like this:
+
+- Each color list under `gui.theme` replaces the list of the same name from the earlier layers entirely. For example, a theme with `activeBorderColor: ['#1e66f5']` gives you a border that isn't bold, even if your `config.yml` says `[green, bold]`. Keys that the theme doesn't set keep their values from your config.
+- `gui.authorColors` and `gui.branchColorPatterns` are merged entry by entry: the theme's entries are added to the ones from your config, and when two layers have an entry for the same author or pattern, the later layer wins. A theme's `'*'` entry therefore colors every author that isn't named explicitly in any of the layers.
+- When a branch matches several different patterns, the longest one wins, whichever layer it comes from (see [Custom Branch Color](#custom-branch-color)). So a theme's pattern doesn't beat a longer pattern from your `config.yml` that matches the same branch; only for the very same pattern does the theme's color replace yours.
+- The deprecated `gui.branchColors` setting is only used when no layer sets `branchColorPatterns`, so a theme that sets `branchColorPatterns` turns off `branchColors` from your config.
+
+### Where the selection is stored
+
+Lazygit saves your choice in a file called `selected_theme.yml` in the same folder as its `state.yml`, not in your config files. On Linux that folder is usually `~/.local/state/lazygit`, on macOS and Windows it's usually the config directory, and if you set `CONFIG_DIR` or `--use-config-dir`, it's that directory. So selecting a theme never changes your config files, and all lazygit instances that keep their state in the same folder share the choice: when you select a theme in one of them, new instances start with it, and the ones that are already running switch to it the next time they switch repos.
+
+The file only contains the theme's name, e.g. `name: light`, and lazygit matches it against the names of your theme files ignoring case. If lazygit can't write the file, e.g. because it's read-only, selecting a theme shows the error and changes nothing, since a choice that isn't saved would be undone the next time lazygit switches repos.
+
+Lazygit reloads the active theme file when you edit it, just like `config.yml`: the changes are applied when lazygit regains focus, e.g. when you switch back to it from your editor. Theme files that you add or delete show up in the menu the next time you open it.
+
+### When a theme can't be loaded
+
+A theme can't be loaded if its file can't be read, isn't valid YAML, or contains a key that isn't allowed or a value that is empty. The error message names the file and says what's wrong with it. What lazygit does then depends on when it loads the theme:
+
+- When you choose the theme in the menu, lazygit shows the error, and the colors and your saved choice stay as they were.
+- When lazygit starts or switches to another repo, it carries on without the selected theme and shows `Couldn't load theme '<name>'` at the bottom left for a few seconds, even if it's fetching at the same time. Your choice stays saved, and the theme menu shows the theme as `<name> (not loaded)`; move the cursor onto it to see the error in the tooltip below the menu. Once you've fixed the file, choose the theme again to apply it; switching to another repo or restarting lazygit applies it too. Just saving the fixed file doesn't, because lazygit doesn't watch a theme file that it couldn't load.
+- When you save a broken version of the active theme file, lazygit shows the error when it regains focus and keeps the colors it had. Once you've fixed the file, the fix is applied the next time lazygit regains focus.
+
+If the file of the selected theme has been deleted or renamed, lazygit uses no theme, without an error message, but the theme stays selected: the menu shows it as `<name> (not found)`, and you can't choose it. Once you put the file back, lazygit applies the theme when it regains focus; until then, the menu shows it as `<name> (not loaded)`, and choosing it applies it right away.
+
+If lazygit can't read `selected_theme.yml` itself, e.g. after a hand edit that broke it, it uses no theme and shows `Couldn't load the selected theme` in the same way. The menu then marks `(none)`, whose tooltip shows the error, and selecting a theme replaces the file.
+
+### What a theme can't change
+
+Lazygit doesn't set the background color of its window; it draws on your terminal's background, and there is no setting for it. A light theme in a dark terminal (or the other way round) therefore looks wrong, with text that's hard to read. Pick a theme that matches your terminal's color scheme, and switch the two together.
+
+The colors of a diff renderer such as delta aren't part of a theme either. Its options, e.g. delta's `--light`, are set in `git.diffRenderers`, which a theme file can't contain. If you switch between light and dark themes, you can configure a renderer for each and cycle between them with `|` (see [Custom Diff Renderers](Custom_DiffRenderers.md)):
+
+```yaml
+git:
+  diffRenderers:
+    - name: delta dark
+      command: delta --dark --paging=never
+    - name: delta light
+      command: delta --light --paging=never
+```
+
+### Community themes
+
+Some theme collections work as they are, or with a small change:
+
+- [catppuccin/lazygit](https://github.com/catppuccin/lazygit): use the files in its `themes-mergable` folder, e.g. `themes-mergable/mocha/blue.yml`. Since lazygit doesn't look into subfolders, copy the file you want into your `themes` folder and give it a name that says which flavor it is, e.g. `catppuccin-mocha-blue.yml`. The files in its `themes` folder aren't nested under `gui:`, so lazygit rejects them.
+- [rose-pine/lazygit](https://github.com/rose-pine/lazygit): the files in its `themes` folder work as they are.
+- [tokyonight.nvim](https://github.com/folke/tokyonight.nvim): the `.yml` files in `extras/lazygit` work once you delete their `nerdFontsVersion` line (set `gui.nerdFontsVersion` in your `config.yml` instead if you want icons).
 
 ## Display Nerd Fonts Icons
 
