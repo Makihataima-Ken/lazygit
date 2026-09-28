@@ -118,27 +118,21 @@ func (self *ThemeHelper) selectTheme(name string) error {
 // rerenderThemedViews renders the views again whose content was styled with
 // the previous theme's colors when it was rendered. Frames and the selection
 // highlight need nothing, because they are drawn with the current colors on
-// every redraw; the main view is left alone because its content comes from
-// git.
+// every redraw.
 func (self *ThemeHelper) rerenderThemedViews() {
 	for _, listContext := range self.c.Context().AllList() {
 		listContext.HandleRender()
 	}
 
-	for _, patchExplorerContext := range self.c.Context().AllPatchExplorer() {
-		patchExplorerContext.GetMutex().Lock()
-		if patchExplorerContext.GetState() != nil {
-			patchExplorerContext.Render()
-		}
-		patchExplorerContext.GetMutex().Unlock()
-	}
-
-	mergeConflictsContext := self.c.Contexts().MergeConflicts
-	mergeConflictsContext.GetMutex().Lock()
-	if mergeConflictsContext.GetState().Active() {
-		_ = mergeConflictsContext.Render()
-	}
-	mergeConflictsContext.GetMutex().Unlock()
+	// The staging, patch building and merge conflicts views are only shown
+	// while their context is focused (or, for a conflict, the files panel),
+	// and focusing that context renders them. Closing the theme menu has
+	// already focused the current context again, before the theme was
+	// applied, and the renders started then finish in the background, so they
+	// would bring back the previous theme's colors. Activating it once more
+	// renders them again after those, with the new colors. It also renders the
+	// search status again, whose frame color applying the theme has reset.
+	self.c.Context().Activate(self.c.Context().Current(), types.OnFocusOpts{})
 
 	// The status view isn't a list, and shows the checked-out branch in its
 	// branch color

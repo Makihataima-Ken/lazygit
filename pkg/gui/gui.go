@@ -571,9 +571,6 @@ func (gui *Gui) onUserConfigLoaded() error {
 func (gui *Gui) onThemeSelected() {
 	gui.Common.SetUserConfig(gui.Config.GetUserConfig())
 	gui.applyThemeConfig()
-	// applyThemeConfig gives the focused view the frame color of an active
-	// view, which is the wrong one while a search or filter is active there
-	gui.helpers.Search.RenderSearchStatus(gui.c.Context().Current())
 }
 
 func (gui *Gui) checkForChangedConfigsThatDontAutoReload(oldConfig *config.UserConfig, newConfig *config.UserConfig) error {

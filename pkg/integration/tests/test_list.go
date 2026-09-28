@@ -529,6 +529,8 @@ var tests = []*components.IntegrationTest{
 	theme.SelectThemeDeletedWhileMenuOpen,
 	theme.SelectThemeFromKeybindingsMenu,
 	theme.SelectThemeKeepsRuntimeSettings,
+	theme.SelectThemeRecolorsMergeConflicts,
+	theme.SelectThemeRecolorsViews,
 	theme.SelectedThemeAppliedAtStartup,
 	theme.ThemeFileCreatedAfterStartup,
 	ui.Accordion,
